@@ -1,0 +1,219 @@
+@baseUrl = http://localhost:3000
+
+### ==========================================================
+### AUTH: Register user #1
+### ==========================================================
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "username": "ivan_petrenko",
+  "password": "secret123",
+  "name": "Іван"
+}
+
+### Save the accessToken / refreshToken from the response above into
+### the variables below before running the next requests.
+@accessToken = PASTE_ACCESS_TOKEN_HERE
+@refreshToken = PASTE_REFRESH_TOKEN_HERE
+
+### ==========================================================
+### AUTH: Register user #2 (used to demonstrate ownership checks)
+### ==========================================================
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "username": "olena_kovalenko",
+  "password": "secret456",
+  "name": "Олена"
+}
+
+@accessTokenUser2 = PASTE_ACCESS_TOKEN_USER2_HERE
+
+### ==========================================================
+### AUTH: Register with an already-taken username -> 409
+### ==========================================================
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "username": "ivan_petrenko",
+  "password": "secret123",
+  "name": "Іван"
+}
+
+### ==========================================================
+### AUTH: Register with invalid data -> 400 (validation error)
+### ==========================================================
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "username": "ab",
+  "password": "123",
+  "name": "I"
+}
+
+### ==========================================================
+### AUTH: Login with correct credentials
+### ==========================================================
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "username": "ivan_petrenko",
+  "password": "secret123"
+}
+
+### ==========================================================
+### AUTH: Login with wrong password -> 401 "Invalid credentials"
+### ==========================================================
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "username": "ivan_petrenko",
+  "password": "wrong_password"
+}
+
+### ==========================================================
+### AUTH: Login with a username that does not exist -> 401 "Invalid credentials"
+### ==========================================================
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "username": "no_such_user",
+  "password": "whatever"
+}
+
+### ==========================================================
+### AUTH: Refresh tokens using the refresh token from the request body
+### ==========================================================
+POST {{baseUrl}}/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+### ==========================================================
+### AUTH: Refresh using an invalid/garbage token -> 401
+### ==========================================================
+POST {{baseUrl}}/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "this.is.not.a.valid.token"
+}
+
+### ==========================================================
+### AUTH: Get current profile (protected route, valid token)
+### ==========================================================
+GET {{baseUrl}}/auth/me
+Authorization: Bearer {{accessToken}}
+
+### ==========================================================
+### AUTH: Get current profile WITHOUT a token -> 401
+### ==========================================================
+GET {{baseUrl}}/auth/me
+
+### ==========================================================
+### AUTH: Get current profile with an invalid token -> 401
+### ==========================================================
+GET {{baseUrl}}/auth/me
+Authorization: Bearer invalid.token.value
+
+### ==========================================================
+### AUTH: Logout (protected route)
+### ==========================================================
+POST {{baseUrl}}/auth/logout
+Authorization: Bearer {{accessToken}}
+
+### ==========================================================
+### ANNOUNCEMENTS: Public - list all announcements (no auth needed)
+### ==========================================================
+GET {{baseUrl}}/announcements
+
+### ==========================================================
+### ANNOUNCEMENTS: Create announcement as user #1 (protected)
+### ==========================================================
+POST {{baseUrl}}/announcements
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "title": "Selling a bicycle",
+  "description": "Barely used, great condition, selling because I'm moving.",
+  "price": 150
+}
+
+### Save the created announcement id below.
+@announcementId = 1
+
+### ==========================================================
+### ANNOUNCEMENTS: Create announcement WITHOUT a token -> 401
+### ==========================================================
+POST {{baseUrl}}/announcements
+Content-Type: application/json
+
+{
+  "title": "No auth announcement",
+  "description": "This should fail because there is no token.",
+  "price": 50
+}
+
+### ==========================================================
+### ANNOUNCEMENTS: Get single announcement by id (public)
+### ==========================================================
+GET {{baseUrl}}/announcements/{{announcementId}}
+
+### ==========================================================
+### ANNOUNCEMENTS: Update OWN announcement as user #1 -> 200
+### ==========================================================
+PATCH {{baseUrl}}/announcements/{{announcementId}}
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "price": 130
+}
+
+### ==========================================================
+### ANNOUNCEMENTS: Update SOMEONE ELSE'S announcement as user #2 -> 403
+### ==========================================================
+PATCH {{baseUrl}}/announcements/{{announcementId}}
+Content-Type: application/json
+Authorization: Bearer {{accessTokenUser2}}
+
+{
+  "price": 1
+}
+
+### ==========================================================
+### ANNOUNCEMENTS: Update announcement WITHOUT a token -> 401
+### ==========================================================
+PATCH {{baseUrl}}/announcements/{{announcementId}}
+Content-Type: application/json
+
+{
+  "price": 999
+}
+
+### ==========================================================
+### ANNOUNCEMENTS: Delete SOMEONE ELSE'S announcement as user #2 -> 403
+### ==========================================================
+DELETE {{baseUrl}}/announcements/{{announcementId}}
+Authorization: Bearer {{accessTokenUser2}}
+
+### ==========================================================
+### ANNOUNCEMENTS: Delete OWN announcement as user #1 -> 204
+### ==========================================================
+DELETE {{baseUrl}}/announcements/{{announcementId}}
+Authorization: Bearer {{accessToken}}
+
+### ==========================================================
+### ANNOUNCEMENTS: Delete announcement WITHOUT a token -> 401
+### ==========================================================
+DELETE {{baseUrl}}/announcements/{{announcementId}}
