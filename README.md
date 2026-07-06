@@ -1,5 +1,3 @@
-# hw4 — Announcements API with JWT Authentication
-
 Announcements API extended with JWT-based authentication (access + refresh
 tokens), protected routes, and ownership checks.
 
